@@ -37,10 +37,24 @@ router.post("/deposits", requireAuth, async (req: Request, res: Response): Promi
   const depositId = generateUUID();
   const domains = process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost";
   const ipnUrl = `https://${domains}/api/deposits/webhook`;
+
+  // NowPayments expects lowercase currency tickers e.g. usdttrc20, btc, eth, usdterc20
+  const CURRENCY_MAP: Record<string, string> = {
+    "USDT_TRC20": "usdttrc20",
+    "USDT_ERC20": "usdterc20",
+    "USDC_ERC20": "usdcerc20",
+    "BTC": "btc",
+    "ETH": "eth",
+    "LTC": "ltc",
+    "TRX": "trx",
+    "BNB": "bnbbsc",
+  };
+  const payCurrency = CURRENCY_MAP[currency] || currency.toLowerCase();
+
   const payment = await createPayment({
     price_amount: amount,
     price_currency: "usd",
-    pay_currency: currency.toLowerCase(),
+    pay_currency: payCurrency,
     order_id: depositId,
     order_description: `Tesla Invest deposit - ${depositId}`,
     ipn_callback_url: ipnUrl,

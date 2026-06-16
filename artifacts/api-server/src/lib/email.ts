@@ -12,7 +12,13 @@ interface EmailPayload {
 
 export async function sendEmail(payload: EmailPayload): Promise<boolean> {
   if (!SENDGRID_API_KEY) {
-    logger.warn("SENDGRID_API_KEY not set — skipping email");
+    logger.warn({ to: payload.to, subject: payload.subject }, "SENDGRID_API_KEY not set — email not sent (check server logs for OTP codes)");
+    // Extract OTP from HTML for dev convenience
+    const otpMatch = payload.html.match(/letter-spacing:8px[^>]*>(\d{6})</);
+    if (otpMatch) {
+      logger.info({ to: payload.to, otp: otpMatch[1] }, "⚡ DEV OTP CODE (no SendGrid key)");
+      console.log(`\n========================================\n⚡ OTP for ${payload.to}: ${otpMatch[1]}\n========================================\n`);
+    }
     return false;
   }
   try {
@@ -34,6 +40,7 @@ export async function sendEmail(payload: EmailPayload): Promise<boolean> {
       logger.error({ status: response.status, body }, "SendGrid error");
       return false;
     }
+    logger.info({ to: payload.to, subject: payload.subject }, "Email sent");
     return true;
   } catch (err) {
     logger.error({ err }, "Failed to send email");
