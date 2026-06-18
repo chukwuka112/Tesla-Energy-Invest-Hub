@@ -7,13 +7,43 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const SECURITY_QUESTIONS = [
+  "What is your favorite fruit?",
+  "What was the name of your first pet?",
+  "What city were you born in?",
+  "What is your favorite food?",
+  "What was your childhood nickname?",
+  "What is your favorite color?",
+  "What is your mother's first name?",
+  "What was the name of your first school?",
+  "What is your dream car brand?",
+  "What is your favorite sports team?",
+];
 
 const registerSchema = z.object({
   full_name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
+  security_question_1: z.string().min(1, "Please select a security question"),
+  security_answer_1: z.string().min(2, "Answer must be at least 2 characters"),
+  security_question_2: z.string().min(1, "Please select a second security question"),
+  security_answer_2: z.string().min(2, "Answer must be at least 2 characters"),
   referral_code: z.string().optional(),
-});
+}).refine(
+  (data) => data.security_question_1 !== data.security_question_2,
+  {
+    message: "Please select two different security questions",
+    path: ["security_question_2"],
+  }
+);
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
@@ -27,6 +57,10 @@ export default function Register() {
       full_name: "",
       email: "",
       password: "",
+      security_question_1: "",
+      security_answer_1: "",
+      security_question_2: "",
+      security_answer_2: "",
       referral_code: "",
     },
   });
@@ -39,12 +73,10 @@ export default function Register() {
       {
         onSuccess: () => {
           toast({
-            title: "Registration Initiated",
-            description: "Please check your email for the verification code.",
+            title: "Registration Successful",
+            description: "Your account has been created. You can now log in.",
           });
-          // Store email in session storage just for the verification step
-          sessionStorage.setItem("verify_email", data.email);
-          setLocation("/verify-otp");
+          setLocation("/login");
         },
         onError: (err: any) => {
           toast({
@@ -64,7 +96,7 @@ export default function Register() {
         <div className="absolute top-[-20%] right-[-10%] w-[140%] h-[60%] rounded-full bg-primary/20 blur-[120px]" />
       </div>
 
-      <div className="relative z-10 flex flex-1 flex-col justify-center px-8 py-12">
+      <div className="relative z-10 flex flex-1 flex-col justify-center px-8 py-12 overflow-y-auto">
         <div className="mb-10 text-center">
           <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[0_0_30px_rgba(204,0,0,0.5)]">
             <span className="font-display text-4xl font-bold">T</span>
@@ -125,6 +157,88 @@ export default function Register() {
                 </FormItem>
               )}
             />
+
+            <div className="border-t border-border/50 pt-4 mt-6">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-4 font-semibold">Security Questions</p>
+              
+              <FormField
+                control={form.control}
+                name="security_question_1"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs uppercase tracking-wider text-muted-foreground">Question 1</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="bg-card/50 border-border/50 h-11">
+                          <SelectValue placeholder="Select a security question" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {SECURITY_QUESTIONS.map((question) => (
+                          <SelectItem key={question} value={question}>
+                            {question}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="security_answer_1"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs uppercase tracking-wider text-muted-foreground">Answer 1</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Your answer" className="bg-card/50 border-border/50 h-11 focus-visible:ring-primary/50" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="security_question_2"
+                render={({ field }) => (
+                  <FormItem className="mt-4">
+                    <FormLabel className="text-xs uppercase tracking-wider text-muted-foreground">Question 2</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="bg-card/50 border-border/50 h-11">
+                          <SelectValue placeholder="Select a different security question" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {SECURITY_QUESTIONS.map((question) => (
+                          <SelectItem key={question} value={question}>
+                            {question}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="security_answer_2"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs uppercase tracking-wider text-muted-foreground">Answer 2</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Your answer" className="bg-card/50 border-border/50 h-11 focus-visible:ring-primary/50" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}

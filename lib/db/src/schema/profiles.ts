@@ -23,12 +23,15 @@ export const profilesTable = pgTable("profiles", {
   referral_code: text("referral_code").notNull().unique(),
   referred_by: text("referred_by"),
   is_active: boolean("is_active").notNull().default(true),
-  email_verified: boolean("email_verified").notNull().default(false),
-  verified_at: timestamp("verified_at"),
+
   avatar_url: text("avatar_url"),
   otp_resend_count: integer("otp_resend_count").notNull().default(0),
   last_otp_resend: timestamp("last_otp_resend"),
   created_at: timestamp("created_at").notNull().defaultNow(),
+  security_question_1_id: text("security_question_1_id"),
+  security_question_1_answer_hash: text("security_question_1_answer_hash"),
+  security_question_2_id: text("security_question_2_id"),
+  security_question_2_answer_hash: text("security_question_2_answer_hash"),
   updated_at: timestamp("updated_at").notNull().defaultNow(),
 });
 

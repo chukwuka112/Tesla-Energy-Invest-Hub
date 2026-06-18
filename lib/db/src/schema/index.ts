@@ -9,3 +9,4 @@ export * from "./notifications";
 export * from "./announcements";
 export * from "./otp_verifications";
 export * from "./admin_logs";
+export * from "./security_questions";

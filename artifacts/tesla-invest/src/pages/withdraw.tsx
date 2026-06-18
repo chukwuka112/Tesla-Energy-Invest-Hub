@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,8 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Wallet } from "lucide-react";
+import { ArrowLeft, Wallet, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+
+const WITHDRAWAL_FEE_PERCENT = 4;
 
 export default function Withdraw() {
   const [, setLocation] = useLocation();
@@ -26,7 +29,7 @@ export default function Withdraw() {
 
   const withdrawSchema = z.object({
     amount: z.coerce.number()
-      .min(20, "Minimum withdrawal is $20")
+      .min(1, "Minimum withdrawal is $1")
       .max(balance, "Insufficient balance"),
     wallet_address: z.string().min(10, "Invalid wallet address"),
     network: z.string().min(1, "Please select a network"),
@@ -44,10 +47,28 @@ export default function Withdraw() {
   });
 
   const createWithdrawal = useCreateWithdrawal();
+  const amount = form.watch("amount");
+  const fee = amount * (WITHDRAWAL_FEE_PERCENT / 100);
+  const finalAmount = amount - fee;
 
   const onSubmit = (data: WithdrawFormValues) => {
+    if (finalAmount <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Withdrawal amount must be greater than the processing fee",
+        variant: "destructive",
+      });
+      return;
+    }
+
     createWithdrawal.mutate(
-      { data },
+      { 
+        data: {
+          ...data,
+          processing_fee: fee,
+          final_amount: finalAmount,
+        }
+      },
       {
         onSuccess: () => {
           toast({
@@ -151,10 +172,35 @@ export default function Withdraw() {
                   )}
                 />
 
+                {/* Fee Information */}
+                <div className="bg-background/50 border border-border/50 rounded-lg p-4 space-y-3">
+                  <div className="flex items-start gap-2 mb-3">
+                    <AlertCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-muted-foreground">
+                      Note: A {WITHDRAWAL_FEE_PERCENT}% withdrawal processing fee will be deducted from every withdrawal request.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 pt-2 border-t border-border/50">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Withdrawal Amount:</span>
+                      <span className="font-medium">${amount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">{WITHDRAWAL_FEE_PERCENT}% Processing Fee:</span>
+                      <span className="font-medium text-red-500">-${fee.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-semibold pt-2 border-t border-border/50">
+                      <span>Amount You'll Receive:</span>
+                      <span className="text-primary">${finalAmount.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+
                 <Button 
                   type="submit" 
                   className="w-full h-14 mt-4 font-display font-bold tracking-wider text-lg bg-primary hover:bg-primary/90 text-white transition-all"
-                  disabled={createWithdrawal.isPending || balance < 20}
+                  disabled={createWithdrawal.isPending || balance < 1 || amount <= 0}
                 >
                   {createWithdrawal.isPending ? "PROCESSING..." : "SUBMIT REQUEST"}
                 </Button>

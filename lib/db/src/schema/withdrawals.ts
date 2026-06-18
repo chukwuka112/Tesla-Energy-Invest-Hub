@@ -12,6 +12,8 @@ export const withdrawalsTable = pgTable("withdrawals", {
   id: text("id").primaryKey().default("gen_random_uuid()"),
   user_id: text("user_id").notNull().references(() => profilesTable.id),
   amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
+  processing_fee: numeric("processing_fee", { precision: 18, scale: 2 }).notNull().default("0"),
+  final_amount: numeric("final_amount", { precision: 18, scale: 2 }).notNull(),
   wallet_address: text("wallet_address").notNull(),
   network: text("network"),
   status: text("status").notNull().default("pending"),
