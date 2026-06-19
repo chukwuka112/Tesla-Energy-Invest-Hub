@@ -35,8 +35,8 @@ router.post("/deposits", requireAuth, async (req: Request, res: Response): Promi
   const { amount, currency } = req.body;
   if (!amount || amount <= 0 || !currency) { res.status(400).json({ error: "Amount and currency required" }); return; }
   const depositId = generateUUID();
-  const domains = process.env.REPLIT_DOMAINS?.split(",")[0] || "localhost";
-  const ipnUrl = `https://${domains}/api/deposits/webhook`;
+  const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : (process.env.BASE_URL || "http://localhost:3000");
+  const ipnUrl = `${baseUrl}/api/deposits/webhook`;
 
   // NowPayments expects lowercase currency tickers e.g. usdttrc20, btc, eth, usdterc20
   const CURRENCY_MAP: Record<string, string> = {

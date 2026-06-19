@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS profiles (
     email TEXT UNIQUE NOT NULL,
     full_name TEXT,
     balance NUMERIC(18, 2) DEFAULT 0,
+    total_deposits NUMERIC(18, 2) DEFAULT 0,
+    total_withdrawals NUMERIC(18, 2) DEFAULT 0,
     role TEXT DEFAULT 'user',
     is_active BOOLEAN DEFAULT true,
     security_question_1_id TEXT,
@@ -55,14 +57,16 @@ CREATE TABLE IF NOT EXISTS user_investments (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 5. Deposits Table
+-- 5. Deposits Table (Updated for NowPayments)
 CREATE TABLE IF NOT EXISTS deposits (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
     user_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     amount NUMERIC(18, 2) NOT NULL,
     currency TEXT NOT NULL,
+    payment_id TEXT,
     payment_address TEXT,
-    status TEXT DEFAULT 'pending', -- pending, approved, rejected
+    status TEXT DEFAULT 'pending', -- pending, approved, rejected, success, failed
+    webhook_data TEXT,
     admin_note TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -113,6 +117,17 @@ CREATE TABLE IF NOT EXISTS admin_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 10. Notifications Table
+CREATE TABLE IF NOT EXISTS notifications (
+    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+    user_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Insert Sample Investment Plans
 INSERT INTO investment_plans (name, min_amount, max_amount, roi_percentage, duration_days, description, image_url)
 VALUES 
@@ -129,30 +144,19 @@ ALTER TABLE user_investments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE deposits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE withdrawals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gift_redemptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
--- Create Policies (Simplified for Initial Setup)
--- Profiles: Users can see/edit their own profile
+-- Create Policies
 CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid()::text = id);
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid()::text = id);
-
--- Security Questions: Users can see/edit their own questions
 CREATE POLICY "Users can view own questions" ON security_questions FOR SELECT USING (auth.uid()::text = user_id);
 CREATE POLICY "Users can insert own questions" ON security_questions FOR INSERT WITH CHECK (auth.uid()::text = user_id);
-
--- Investments: Users can see their own investments
 CREATE POLICY "Users can view own investments" ON user_investments FOR SELECT USING (auth.uid()::text = user_id);
-
--- Deposits: Users can see/insert their own deposits
 CREATE POLICY "Users can view own deposits" ON deposits FOR SELECT USING (auth.uid()::text = user_id);
 CREATE POLICY "Users can insert own deposits" ON deposits FOR INSERT WITH CHECK (auth.uid()::text = user_id);
-
--- Withdrawals: Users can see/insert their own withdrawals
 CREATE POLICY "Users can view own withdrawals" ON withdrawals FOR SELECT USING (auth.uid()::text = user_id);
 CREATE POLICY "Users can insert own withdrawals" ON withdrawals FOR INSERT WITH CHECK (auth.uid()::text = user_id);
-
--- Gift Redemptions: Users can see their own redemptions
 CREATE POLICY "Users can view own redemptions" ON gift_redemptions FOR SELECT USING (auth.uid()::text = user_id);
 CREATE POLICY "Users can insert own redemptions" ON gift_redemptions FOR INSERT WITH CHECK (auth.uid()::text = user_id);
-
--- Investment Plans: Everyone can see active plans
+CREATE POLICY "Users can view own notifications" ON notifications FOR SELECT USING (auth.uid()::text = user_id);
 CREATE POLICY "Anyone can view active plans" ON investment_plans FOR SELECT USING (is_active = true);
